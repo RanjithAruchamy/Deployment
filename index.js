@@ -20,4 +20,4 @@ app.use(passport.initialize())
 app.use('/api', rtsIndex);
 
 //start server
-app.listen(process.env.PORT || 3000, () => console.log(`Server started at : ${process.env.PORT}`));
+app.listen(process.env.PORT, '0.0.0.0', () => console.log(`Server started at : ${process.env.PORT}`));
