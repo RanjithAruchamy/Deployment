@@ -18,6 +18,6 @@ app.use(function(req, res, next) {
   });
 app.use(passport.initialize())
 app.use('/api', rtsIndex);
-
+console.log(process.env.PORT)
 //start server
 app.listen(process.env.PORT, '0.0.0.0', () => console.log(`Server started at : ${process.env.PORT}`));
