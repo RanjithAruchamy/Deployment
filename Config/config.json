@@ -1,11 +1,11 @@
 {
     "development":{
         
-        "MONGODB_URI": "mongodb://localhost/Sports",
+        "MONGODB_URI": "mongodb+srv://adminUser:Admin123@ranjithcluster.jkhq5.mongodb.net/<dbname>?retryWrites=true&w=majority",
         "JWT_SECRET": "SecretSports",
         "JWT_EXP": "365d",
-        "domaiURL":"http://localhost:3000",
-        "loginURL":"http://localhost:4200/login",
+        "domaiURL":"https://dharan-sports.herokuapp.com",
+        "loginURL":"https://dharan-sports.stackblitz.io/login",
         "captcha-secret":"6LfMtNQZAAAAACzCf4ZFvVM1965YeM59fQHsvgnZ",
         "mail":{
             "user":"tuser0380@gmail.com",
@@ -14,8 +14,15 @@
     },
     "production":{
         
-        "MONGODB_URI": "mongodb://localhost://27017/Sports",
+        "MONGODB_URI": "mongodb+srv://adminUser:Admin123@ranjithcluster.jkhq5.mongodb.net/<dbname>?retryWrites=true&w=majority",
         "JWT_SECRET": "SecretSports",
-        "JWT_EXP": "60m"
+        "JWT_EXP": "365d",
+        "domaiURL":"https://dharan-sports.herokuapp.com",
+        "loginURL":"https://dharan-sports.stackblitz.io/login",
+        "captcha-secret":"6LfMtNQZAAAAACzCf4ZFvVM1965YeM59fQHsvgnZ",
+        "mail":{
+            "user":"tuser0380@gmail.com",
+            "pwd": "Test@dmin"
+        }
     }
 }
