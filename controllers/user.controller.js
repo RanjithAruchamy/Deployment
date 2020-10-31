@@ -82,6 +82,11 @@ module.exports.registerUserMaster = async (req, res, next) => {
                 }else{
                 user.save( function(err, doc) {
                     if(err){
+                        if (err.name === 'MongoError' && err.code === 11000) {
+                            // Duplicate username
+                            return res.status(422).send({ succes: false, message: 'Email already exist!' });
+                          }
+                          else
                         res.status(500).send(err)
                     }
                     else{

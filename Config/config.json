@@ -1,6 +1,6 @@
 {
     "development":{
-        
+        "PORT" : 3000,
         "MONGODB_URI": "mongodb+srv://adminUser:Admin123@ranjithcluster.jkhq5.mongodb.net/<dbname>?retryWrites=true&w=majority",
         "JWT_SECRET": "SecretSports",
         "JWT_EXP": "365d",
