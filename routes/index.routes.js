@@ -6,7 +6,7 @@ const ctrlSport = require('../controllers/sports.controller');
 const ctrlForm = require('../controllers/forms.controller');
 const jwtHelper = require('../Config/JWThelper');
 
-router.post('/generateToken', ctrlUser.authenticate);
+router.post('/login', ctrlUser.authenticate);
 router.post('/register/user', ctrlUser.registerUserMaster);
 router.post('/register/sport',jwtHelper.verifyJwtToken, ctrlSport.registerSportsMaster);
 router.post('/register/form',jwtHelper.verifyJwtToken, ctrlForm.registerForm);
