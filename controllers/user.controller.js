@@ -64,7 +64,14 @@ module.exports.registerUserMaster = async (req, res, next) => {
                     'sports':{
                         'sportId': req.body.sportId,
                         'playerLevel': null,
-                        'playerSkill': null,
+                        'playerSkill': {
+                            'batsman':false,
+                            'bowler':false,
+                            'leftHand':false,
+                            'rightHand':false,
+                            'wicketKeeper':false,
+                            'allRounder':false
+                        },
                         'previousTeam': null,
                         'TNCA': null,
                         'KDCA': null,
@@ -125,7 +132,14 @@ module.exports.registerUserMaster = async (req, res, next) => {
                                 'role': req.body.role,
                                 'sportId': req.body.sportId,
                                 'playerLevel': null,
-                                'playerSkill': null,
+                                'playerSkill': {
+                                    'batsman':false,
+                                    'bowler':false,
+                                    'leftHand':false,
+                                    'rightHand':false,
+                                    'wicketKeeper':false,
+                                    'allRounder':false
+                                },
                                 'previousTeam': null,
                                 'TNCA': null,
                                 'KDCA': null,

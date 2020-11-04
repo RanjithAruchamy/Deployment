@@ -33,7 +33,14 @@ var userSchema = new mongoose.Schema(
     sports:{
       sportId:{type:String},
       playerLevel: { type: String  },
-      playerSkill: { type: String  },
+      playerSkill: { 
+        batsman:{type:Boolean},
+        bowler:{type: Boolean},
+        leftHand:{type: Boolean},
+        rightHand:{type: Boolean},
+        wicketKeeper:{type: Boolean},
+        allRounder:{type: Boolean}
+        },
       previousTeam: { type: String  },
       TNCA: { type: String  },
       KDCA: { type: String  },

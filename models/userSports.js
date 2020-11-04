@@ -8,7 +8,14 @@ var userSchema = new mongoose.Schema(
     status: { type: String, default: "ACTIVE" },
     role: { type: String, default: "USER" },
     playerLevel: { type: String  },
-    playerSkill: { type: String  },
+    playerSkill: { 
+      batsman:{type:Boolean},
+      bowler:{type: Boolean},
+      leftHand:{type: Boolean},
+      rightHand:{type: Boolean},
+      wicketKeeper:{type: Boolean},
+      allRounder:{type: Boolean}
+      },
     previousTeam: { type: String  },
     TNCA: { type: String  },
     KDCA: { type: String  },
