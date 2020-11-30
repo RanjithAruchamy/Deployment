@@ -9,7 +9,7 @@
         "captcha-secret":"6LfMtNQZAAAAACzCf4ZFvVM1965YeM59fQHsvgnZ",
         "mail":{
             "user":"tuser0380@gmail.com",
-            "pwd": "Test@dmin"
+            "pwd": "@dminTest"
         }
     },
     "production":{
@@ -22,7 +22,7 @@
         "captcha-secret":"6LfMtNQZAAAAACzCf4ZFvVM1965YeM59fQHsvgnZ",
         "mail":{
             "user":"tuser0380@gmail.com",
-            "pwd": "Test@dmin"
+            "pwd": "@dminTest"
         }
     }
 }
