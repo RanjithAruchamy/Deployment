@@ -83,17 +83,27 @@ module.exports.registerUserMaster = async (req, res, next) => {
                 }
                     
                 });
+                
                 //Password Validation
                 if(pwd.length < 4){
                     res.status(422).json("Password must be 4 character long")
-                }else{
+                }
+                else{
                 user.save( function(err, doc) {
+                    
                     if(err){
-                        if (err.name === 'MongoError' && err.code === 11000) {
-                            // Duplicate username
-                            return res.status(422).send({ succes: false, message: 'Email already exist!' });
-                          }
-                          else
+                        if(err.name === 'MongoError' && err.code === 11000){
+                                // Email validation
+                        User.findOne({email:req.body.email})
+                        .then(async email =>{
+                            if(email.email == req.body.email && (email.status == "ACTIVE" || email.status == "PENDING"))
+                            return await res.status(422).send({ success: false, message: 'This email ID is already registered with us, if you are a new user please provide a new email id else please try to Sign-IN using the password already created' });
+                            else if(email.email == req.body.email && email.status == "INACTIVE")
+                            return await res.status(422).send({ success: false, message: 'Email Deactivated, Contact Admin!' });
+                        
+                        })
+                    }
+                        else
                         res.status(500).send(err)
                     }
                     else{

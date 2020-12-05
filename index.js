@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const rtsIndex = require('./routes/index.routes');
 const passport = require('passport');
+const path = require('path');
 const config = require('./Config/config');
 require('./models/db');
 require('./Config/passport');
@@ -19,6 +20,10 @@ app.use(function(req, res, next) {
   });
 app.use(passport.initialize())
 app.use('/api', rtsIndex);
-console.log(process.env.PORT)
+app.use("/",express.static(path.join(__dirname, '/Frontend-Angular')));
+app.use(function(req, res) {
+  res.sendFile(path.join(__dirname + '/Frontend-Angular', 'index.html')); // Set index.html as layout
+});
+// console.log(process.env.PORT)
 //start server
 app.listen(process.env.PORT, '0.0.0.0', () => console.log(`Server started at : ${process.env.PORT}`));
