@@ -13,6 +13,8 @@ const nodemailer = require('nodemailer');
 const { getMaxListeners } = require('../models/userMaster');
 const config = require('../Config/config.json');
 const axios = require('axios');
+const cron = require('node-cron');
+const pwdGenerator = require('generate-password');
 //const User = mongoose.model('UserMaster');
 
 // Create a User
@@ -39,12 +41,16 @@ module.exports.registerUserMaster = async (req, res, next) => {
                 {
                     'userId': "OXF-D-U-" + fName + lName +"-"+ count,
                     'role': req.body.role,
+                    'status': "PENDING",
                     'firstName': req.body.firstName,
                     'lastName': req.body.lastName,
                     'email': req.body.email,
                     'phoneNumber': req.body.phoneNumber,
                     'password': hashPwd,
-                    'isVerified': false,
+                    'mail':{
+                        'isVerified': false,
+                        'followUp': null
+                    },
                     'createdBy': req.body.firstName + " " + req.body.lastName,
                     'deletedAt': null,
                     'updatedBy':null,
@@ -351,12 +357,18 @@ module.exports.confirmToken = async (req, res, next) => {
     Token.findOne({token:req.query.token})
     .then(token => {
         if(token.token === req.query.token){
-            User.findOneAndUpdate({userId:token.userId}, {$set:{isVerified:true}}, {new:true})
+            var followUp ;
+            User.findOne({userId:token.userId})
             .then(user => {
-                if(user.isVerified == true)
-                res.redirect(config.development.loginURL);
-                
+                followUp = user.mail.followUp            
+            User.findOneAndUpdate({userId:token.userId}, {$set:{mail:{isVerified:true, followUp: followUp}}}, {new:true})
+            .then(user => {
+                if(user.mail.isVerified == true){
+                    res.redirect(config.development.loginURL);
+                    Task.stop();
+                }
             })
+        })
         }
 })
     
@@ -421,6 +433,7 @@ module.exports.userProfile = (req, res, next) => {
                 }
         });
 }
+var Task;
 
 //Send verification email
 function sendEmail(email, token){
@@ -436,14 +449,58 @@ function sendEmail(email, token){
         subject:"Account Verification",
         text:"Hello, \n\n"+"Please verify your account by clicking the  below link: \n"+config.development.domaiURL+"\/api\/confirmation\/?token="+token + ".\n"
     }
-    transporter.sendMail(message, function(err, doc) {
+    triggerMail();
+    
+    var dateTime = new Date()
+    /* var hour = dateTime.getHours();
+    var min = dateTime.getMinutes(); */
+    Task = cron.schedule('* 12 * * *', () => {
+        User.findOne({email:message.to})
+        .then(async user => {
+            if(user.mail.isVerified == false){
+                if(user.mail.followUp == 0){
+                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp:1, isVerified:false}}},{new:true})
+                    .then(user=>{
+                        
+                        console.log("Follow Up "+user.mail.followUp +" " + dateTime +" "+user.email);
+                        triggerMail();
+                    })
+                }
+                else if(user.mail.followUp == 1){
+                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp:2, isVerified:false}}},{new:true})
+                    .then(user=>{
+                        
+                        console.log("Follow Up "+user.mail.followUp +" " + dateTime+" "+user.email);
+                        triggerMail();
+                    })
+                }
+                else if(user.mail.followUp == 2){
+                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp:3, isVerified:false}, status:"INACTIVE"}}, {new:true})
+                    .then(user=>{
+                        
+                        console.log("Follow Up "+user.mail.followUp +" " + dateTime+" "+user.email);
+                        triggerMail();
+                    })
+                }
+                else if(user.mail.followUp == null){
+                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp:0, isVerified:false}}}, {new:true})
+                    .then(user => {
+                        
+                        console.log("Follow Up "+user.mail.followUp +" " + dateTime+" "+user.email );
+                        
+                    })
+                }
+            }
+        })
+      });
+      function triggerMail(){ transporter.sendMail(message, function(err, doc) {
         if (err){
             console.log(err)
         }
         else{
             console.log('Mail sent'+ doc.response)
         }
-    });
+    });}
     
 }
 
@@ -458,4 +515,40 @@ module.exports.captchaVerify = (req, res, next) => {
 
         res.status(401).send(response.data.success)
     })
+}
+
+//Forgot Password
+module.exports.forgotPwd = async (req, res, next) => {
+    const user = new User();
+    var token;
+    var genToken = await user.generateJwt();
+    var pwd = await pwdGenerator.generate({
+        length:10,
+        numbers: true
+    });
+    await User.findOne({email:req.body.email})
+    .then(user => {        
+        token = new Token({userId:user.userId, token: genToken, email:user.email})
+        .save()
+    })
+    var transporter = nodemailer.createTransport({
+        service:'gmail',
+         auth:{
+             user: config.development.mail.user, 
+             pass: config.development.mail.pwd} 
+            })
+    var message = {
+        from: config.development.mail.user,
+        to:req.body.email,
+        subject:"Forgot Password",
+        text:"Hello, \n\n"+"Here is your new password: "+pwd+"\nPlease reset your password by clicking the below link: \n"+config.development.domaiURL+"\/api\/resetPassword\/?token="+genToken+".\n"
+    }
+    transporter.sendMail(message, function(err, doc) {
+        if (err){
+            console.log(err)
+        }
+        else{
+            console.log('Mail sent'+ doc.response)
+        }
+    });
 }

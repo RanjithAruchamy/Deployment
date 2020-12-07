@@ -5,9 +5,12 @@ const jwt = require('jsonwebtoken');
 var userSchema = new mongoose.Schema(
   {
     userId: { type: String, unique: true },
-    status: { type: String, default: "ACTIVE" },
+    status: { type: String },
     role: { type: String, default: "USER" },
-    isVerified:{type:Boolean},
+    mail:{
+      isVerified:{type:Boolean},
+      followUp:{type:Number}, // 0-first attempt, 1-second attempt, 2-third attempt, 3-deactivated
+    },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     phoneNumber: { type: Number, required: true },
