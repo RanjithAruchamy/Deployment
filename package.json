@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "postinstall": "opencollective-postinstall || exit 0"
+    "postinstall": "opencollective-postinstall"
   },
   "author": "Ranjith Aruchamy",
   "license": "ISC",
