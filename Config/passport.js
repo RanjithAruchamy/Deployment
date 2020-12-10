@@ -22,7 +22,7 @@ passport.use(
                 else if(user.isVerified == false){
                     return done(null, false, {message: 'Verify your email'})
                 }
-                else if(user.isVerified == true){
+                else if(user){
                     return done(null, user)
                 }
             })

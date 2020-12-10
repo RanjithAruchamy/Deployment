@@ -15,6 +15,9 @@ const config = require('../Config/config.json');
 const axios = require('axios');
 const cron = require('node-cron');
 const pwdGenerator = require('generate-password');
+const session = require('node-sessionstorage');
+const { LocalStorage } = require('node-localstorage');
+const localstorage = require('node-localstorage').LocalStorage;
 //const User = mongoose.model('UserMaster');
 
 // Create a User
@@ -526,11 +529,21 @@ module.exports.forgotPwd = async (req, res, next) => {
         length:10,
         numbers: true
     });
-    await User.findOne({email:req.body.email})
-    .then(user => {        
-        token = new Token({userId:user.userId, token: genToken, email:user.email})
-        .save()
+    const salt = await bcrypt.genSalt()
+    const hashPwd = await bcrypt.hash(pwd, salt);
+    await User.findOneAndUpdate({email:req.body.email}, {$set:{password:hashPwd}})
+    await User.findOne({email:req.body.email},
+        (err, user) => {      
+            if(!user)   res.status(404).send({message:"User not found"})  
+            else if(err)    res.status(500).send({message:"Internal server error"})
+            else{
+                token = new Token({userId:user.userId, token: genToken, email:user.email})
+                .save()
+                triggerMail();
+            }
+
     })
+    function triggerMail(){
     var transporter = nodemailer.createTransport({
         service:'gmail',
          auth:{
@@ -541,7 +554,7 @@ module.exports.forgotPwd = async (req, res, next) => {
         from: config.development.mail.user,
         to:req.body.email,
         subject:"Forgot Password",
-        text:"Hello, \n\n"+"Here is your new password: "+pwd+"\nPlease reset your password by clicking the below link: \n"+config.development.domaiURL+"\/api\/resetPassword\/?token="+genToken+".\n"
+        text:"Hello, \n\n"+"Here is your new password: "+pwd+"\nPlease reset your password by clicking the below link: \n"+config.development.domaiURL+"\/api\/resetPassword.\n"
     }
     transporter.sendMail(message, function(err, doc) {
         if (err){
@@ -549,6 +562,48 @@ module.exports.forgotPwd = async (req, res, next) => {
         }
         else{
             console.log('Mail sent'+ doc.response)
+            res.status(200).send({message:'Email sent'})
         }
-    });
+    });}
+}
+
+
+//Verify Reset password
+module.exports.resetPwd = (req, res, next) => {
+    
+    Token.findOne({token:req.query.token},
+        (err, token) => {
+            if (err)    res.status(500).send(err)
+            else if(!token) res.status(404).send({message:"Link expired or no user found."})
+            else{
+                User.findOne({userId: token.userId}, 
+                    (err, user) => {
+                        if(err)
+                        res.status(500).send(err);
+                        else if(!user)
+                            res.status(404).send({message:"Email is not Registered"})
+                        else{
+                            res.redirect(config.development.resetURL)
+                            localstorage = new LocalStorage('./scratch');
+                            localstorage.setItem('email', user.email)
+                        }
+                    })
+            }
+        })
+}
+//Reset Password
+module.exports.changePassword = async (req, res, next) => {
+    const salt = await bcrypt.genSalt()
+    const hashPwd = await bcrypt.hash(req.body.newPassword, salt);
+    passport.authenticate('local', async (err, user, info) => {
+        if(err)
+        return res.status(400).json(err);
+        else if(user){
+           await User.findOneAndUpdate({email:req.body.email},{$set:{password:hashPwd}})
+            return res.status(200).json(req.body.newPassword);
+        }
+        
+        else
+        return res.status(404).json(info)
+    })(req, res)
 }

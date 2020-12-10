@@ -22,6 +22,8 @@
     "moment": "^2.29.1",
     "mongoose": "^5.10.9",
     "node-cron": "^2.0.3",
+    "node-localstorage": "^2.1.6",
+    "node-sessionstorage": "^1.0.0",
     "nodemailer": "^6.4.14",
     "nodemon": "^2.0.6",
     "opencollective-postinstall": "^2.0.3",

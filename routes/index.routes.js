@@ -26,6 +26,8 @@ router.delete('/sports/:sportId',jwtHelper.verifyJwtToken, ctrlSport.deleteSport
 router.delete('/forms/:formId',jwtHelper.verifyJwtToken, ctrlForm.deleteForm);
 router.get('/confirmation', ctrlUser.confirmToken);
 router.post('/verifyCaptcha', ctrlUser.captchaVerify);
-router.put('/forgotPassword', ctrlUser.forgotPwd)
+router.post('/forgotPassword', ctrlUser.forgotPwd);
+router.get('/resetPassword', ctrlUser.resetPwd);
+router.post('/resetPassword', ctrlUser.changePassword);
 
 module.exports = router;
