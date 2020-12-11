@@ -5,7 +5,7 @@ const rtsIndex = require('./routes/index.routes');
 const passport = require('passport');
 const path = require('path');
 const config = require('./Config/config');
-const cron = require('node-cron');
+const cron = require('cron').CronJob;
 const { json } = require('express');
 require('./models/db');
 require('./Config/passport');

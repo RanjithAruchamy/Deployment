@@ -9,7 +9,17 @@ var userSchema = new mongoose.Schema(
     role: { type: String, default: "USER" },
     mail:{
       isVerified:{type:Boolean},
-      followUp:{type:Number}, // 0-first attempt, 1-second attempt, 2-third attempt, 3-deactivated
+      followUp1:{type:Date},
+      followUp2:{type:Date},
+      followUp3:{type:Date},
+      deactivatedAt:{type:Date}
+    },
+    admin:{
+      isSubmitted:{type:Boolean},
+      isApproved:{type:Boolean},
+      followUp1:{type:Date},
+      followUp2:{type:Date},
+      activatedAt:{type:Date}
     },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
@@ -17,19 +27,27 @@ var userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true},
     password: { type: String, required: true },
     deletedAt: { type: Date},
-    createdBy:{type:String},
+    createdBy:{type:String}, 
     updatedBy:{type:String},
     deletedBy:{type:String},
     saltSecret: String,
     personal:{
+      gender:{type:String},
+      nationality:{type:String},
       fatherName:{type:String},
+      fatherOccupation:{type:String},
       motherName:{type:String },
+      motherOccupation:{type:String},
+      parentMobile:{type: Number},
+      residenceNumber:{type:Number},
+      parentEmail:{type:String},
       permanentAddress:{type:String },
       temporaryAddress:{type:String },
       bloodGroup:{type:String },
       age:{type:Number },
       dob:{type:Date },
       height:{type:String },
+      weight:{type:String},
       profession:{type:String },
       organization:{type:String }
     },
@@ -49,9 +67,26 @@ var userSchema = new mongoose.Schema(
       KDCA: { type: String  },
       hobbies: { type: String  },
       goal: { type: String  },
-      roleModel:{type:String  },
-      strength:{type:String  },
-      weakness:{type:String  }
+      strength:{
+        general:{type:String},
+        cricket:{type:String}
+       },
+      weakness:{
+        general:{type:String},
+        cricket:{type:String}
+       },
+       bowlerType: {type:String},
+       bowlerHand: {type:String},
+       battingHand: {type:String},
+       medical: {type:String},
+       roleModelReal:{
+         name: {type:String},
+         reason: {type:String},
+       },
+       roleModelCricket: {
+         name: {type:String},
+         reason: {type:String}
+       }
     },
 },
   {

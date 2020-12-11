@@ -13,7 +13,7 @@ const nodemailer = require('nodemailer');
 const { getMaxListeners } = require('../models/userMaster');
 const config = require('../Config/config.json');
 const axios = require('axios');
-const cron = require('node-cron');
+const cron = require('cron').CronJob;
 const pwdGenerator = require('generate-password');
 const session = require('node-sessionstorage');
 const { LocalStorage } = require('node-localstorage');
@@ -52,21 +52,39 @@ module.exports.registerUserMaster = async (req, res, next) => {
                     'password': hashPwd,
                     'mail':{
                         'isVerified': false,
-                        'followUp': null
+                        'followUp1': null,
+                        'followUp1': null,
+                        'followUp1': null,
+                        'deactivatedAt':null
+                    },
+                    'admin':{
+                        'isSubmitted':null,
+                        'isApproved':null,
+                        'followUp1':null,
+                        'followUp2':null,
+                        'activatedAt':null
                     },
                     'createdBy': req.body.firstName + " " + req.body.lastName,
                     'deletedAt': null,
                     'updatedBy':null,
                     'deletedBy':null,
                     'personal':{
+                        'gender':null,
+                        'nationality':null,
                         'fatherName': null,
+                        'fatherOccupation':null,
                         'motherName': null,
+                        'motherOccupation':null,
+                        'parentMobile':null,
+                        'residenceNumber':null,
+                        'parentEmail':null,
                         'permanentAddress': null,
                         'temporaryAddress': null,
                         'bloodGroup': null,
                         'age': null,
                         'dob': null,
                         'height': null,
+                        'weight':null,
                         'profession': null,
                         'organization': null
                     },
@@ -86,9 +104,26 @@ module.exports.registerUserMaster = async (req, res, next) => {
                         'KDCA': null,
                         'hobbies': null,
                         'goal': null,
-                        'roleModel':null,
-                        'strength':null,
-                        'weakness':null
+                        'strength':{
+                            'general':null,
+                            'cricket':null
+                        },
+                        'weakness':{
+                            'general':null,
+                            'cricket':null
+                        },
+                        'bowlerType':null,
+                        'bowlerHand':null,
+                        'battingHand':null,
+                        'medical':null,
+                        'roleModelReal':{
+                            'name':null,
+                            'reason':null
+                        },
+                        'roleModelCricket':{
+                            'name':null,
+                            'reason':null
+                        }
                 }
                     
                 });
@@ -122,21 +157,28 @@ module.exports.registerUserMaster = async (req, res, next) => {
                         {
                             '_id': user._id,
                             'userId': user.userId,
-                            'role': req.body.role,
                             'firstName': req.body.firstName,
                             'lastName': req.body.lastName,
                             'email': user.email,
                             'phoneNumber': req.body.phoneNumber,
-                            'fatherName':null,
-                            'motherName':null,
-                            'permanentAddress':null,
-                            'temporaryAddress':null,
-                            'bloodGroup':null,
-                            'age':null,
-                            'dob':null,
-                            'height':null,
-                            'profession':null,
-                            'organization':null,
+                            'gender':null,
+                            'nationality':null,
+                            'fatherName': null,
+                            'fatherOccupation':null,
+                            'motherName': null,
+                            'motherOccupation':null,
+                            'parentMobile':null,
+                            'residenceNumber':null,
+                            'parentEmail':null,
+                            'permanentAddress': null,
+                            'temporaryAddress': null,
+                            'bloodGroup': null,
+                            'age': null,
+                            'dob': null,
+                            'height': null,
+                            'weight':null,
+                            'profession': null,
+                            'organization': null,
                             'deletedAt': null,
                             'createdBy':user.createdBy,
                             'updatedBy':null,
@@ -148,7 +190,6 @@ module.exports.registerUserMaster = async (req, res, next) => {
                             {
                                 '_id': user._id,
                                 'userId': user.userId,
-                                'role': req.body.role,
                                 'sportId': req.body.sportId,
                                 'playerLevel': null,
                                 'playerSkill': {
@@ -164,9 +205,26 @@ module.exports.registerUserMaster = async (req, res, next) => {
                                 'KDCA': null,
                                 'hobbies': null,
                                 'goal': null,
-                                'roleModel':null,
-                                'strength':null,
-                                'weakness':null,
+                                'strength':{
+                                    'general':null,
+                                    'cricket':null
+                                },
+                                'weakness':{
+                                    'general':null,
+                                    'cricket':null
+                                },
+                                'bowlerType':null,
+                                'bowlerHand':null,
+                                'battingHand':null,
+                                'medical':null,
+                                'roleModelReal':{
+                                    'name':null,
+                                    'reason':null
+                                },
+                                'roleModelCricket':{
+                                    'name':null,
+                                    'reason':null
+                                },
                                 'deletedAt': null,
                                 'createdBy':user.createdBy,
                                 'updatedBy':null,
@@ -246,7 +304,7 @@ module.exports.getUser = (req, res, next) => {
 //Update a User
 module.exports.updateUserMaster = async (req, res, next) => {
     // To fetch logged in user details
-    var fName, lName, name, role;
+    var fName, lName, name, role, user;
     
     User.findOne({userId: req.userId},
       async  (err, user) => {
@@ -274,7 +332,7 @@ module.exports.updateUserMaster = async (req, res, next) => {
                 var user = {userId: req.userId}
                 update(user)
             }
-async function update(userId){    
+    async function update(userId){    
     //Updating to User Master    
     await User.findOneAndUpdate(userId, {$set:req.body}, {new:true})
     await User.findOneAndUpdate(userId, {$set:{updatedBy: name}}, {new:true})
@@ -286,7 +344,78 @@ async function update(userId){
     //Updating to User Sports
     await UserSports.findOneAndUpdate(userId,{$set:req.body.sports}, {new:true})
     await UserSports.findOneAndUpdate(userId, {$set:{updatedBy: name}}, {new:true})}
-});
+    user = {userId: req.userId}
+    sendMailAdmin(user)
+ });
+    async function sendMailAdmin(user){
+        User.findOne(user)
+        .then(async user => {
+            if(user.admin.isApproved == true)   return null;
+            else{
+            if(user.admin.isSubmitted == true){
+                var transporter = nodemailer.createTransport({
+                    service:'gmail',
+                     auth:{
+                         user: config.development.mail.user, 
+                         pass: config.development.mail.pwd} 
+                        })
+                var messageAdmin = {
+                    from: config.development.mail.user,
+                    to:config.development.mail.user,
+                    subject:"For Approval",
+                    text:"Hello, \n\n"+"Please verify your account by clicking the  below link: \n"+config.development.domaiURL+"\/api\/confirmation\/?token=.\n"
+                }
+                var messageUserApproval = {
+                    from: config.development.mail.user,
+                    to:user.email,
+                    subject:"Sent For Approval",
+                    text:"Hello, \n\n"+"Please verify your account by clicking the  below link: \n"+config.development.domaiURL+"\/api\/confirmation\/?token=.\n"
+                }
+                var messageUserApproved = {
+                    from: config.development.mail.user,
+                    to:user.email,
+                    subject:"Approved",
+                    text:"Hello, \n\n"+"Please verify your account by clicking the  below link: \n"+config.development.domaiURL+"\/api\/confirmation\/?token=.\n"
+                }
+                var date = new Date();
+                triggerMail(messageAdmin);
+                var obj = {admin:{followUp1:date}}
+                await User.findOneAndUpdate({userId:user.userId}, {$set:obj})
+                triggerMail(messageUserApproval)
+                var task = new cron('*/2 * * * *',async ()=>{
+                    if(user.admin.isApproved == true) return null
+                    else{
+                        if(user.admin.followUp1 == null){
+                            triggerMail(messageAdmin);
+                            var obj = {admin:{followUp1:date}}
+                            await User.findOneAndUpdate({userId:user.userId}, {$set:obj})
+                        }
+                        else if(user.admin.followUp2 == null){
+                            triggerMail(messageAdmin);
+                            var obj = {admin:{followUp2:date}}
+                            await User.findOneAndUpdate({userId:user.userId}, {$set:obj})
+                        }
+                        else{
+                            var obj = {status:"ACTIVE",admin:{activatedAt:date}}
+                            await User.findOneAndUpdate({userId:user.userId}, {$set:obj})
+                            triggerMail(messageUserApproved)
+                        }
+                    }
+                })
+                task.start();
+                function triggerMail(message){ transporter.sendMail(message, function(err, doc) {
+                    if (err){
+                        console.log(err)
+                    }
+                    else{
+                        console.log('Mail sent'+ doc.response)
+                    }
+                });}
+
+            }else   return null;
+            }
+        })
+    }
 }
 
 //Inactive a User
@@ -439,7 +568,7 @@ module.exports.userProfile = (req, res, next) => {
 var Task;
 
 //Send verification email
-function sendEmail(email, token){
+async function sendEmail (email, token){
     var transporter = nodemailer.createTransport({
         service:'gmail',
          auth:{
@@ -453,49 +582,46 @@ function sendEmail(email, token){
         text:"Hello, \n\n"+"Please verify your account by clicking the  below link: \n"+config.development.domaiURL+"\/api\/confirmation\/?token="+token + ".\n"
     }
     triggerMail();
-    
     var dateTime = new Date()
+    let obj ={mail:{followUp1:dateTime, isVerified:false}};
+    await User.findOneAndUpdate({email:message.to}, {$set:obj}, {new:true})
     /* var hour = dateTime.getHours();
     var min = dateTime.getMinutes(); */
-    Task = cron.schedule('* 12 * * *', () => {
+    Task = new cron('*/2 * * * *', () => {
+        let dateTime = new Date()
+        console.log(dateTime)
         User.findOne({email:message.to})
         .then(async user => {
             if(user.mail.isVerified == false){
-                if(user.mail.followUp == 0){
-                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp:1, isVerified:false}}},{new:true})
+                if(user.mail.followUp1 != null){
+                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp1:user.mail.followUp1,followUp2:dateTime, isVerified:false}}},{new:true})
                     .then(user=>{
                         
                         console.log("Follow Up "+user.mail.followUp +" " + dateTime +" "+user.email);
                         triggerMail();
                     })
                 }
-                else if(user.mail.followUp == 1){
-                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp:2, isVerified:false}}},{new:true})
+                else if(user.mail.followUp2 != null){
+                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp1:user.mail.followUp1,followUp2:user.mail.followUp2, followUp3:dateTime, isVerified:false}}},{new:true})
                     .then(user=>{
                         
                         console.log("Follow Up "+user.mail.followUp +" " + dateTime+" "+user.email);
                         triggerMail();
                     })
                 }
-                else if(user.mail.followUp == 2){
-                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp:3, isVerified:false}, status:"INACTIVE"}}, {new:true})
+                else if(user.mail.followUp3 != null){
+                    await User.findOneAndUpdate({email:message.to}, {$set:{status:"INACTIVE",mail:{followUp1:user.mail.followUp1,followUp2:user.mail.followUp2, followUp3:user.mail.followUp3,deactivatedAt:dateTime, isVerified:false}}}, {new:true})
                     .then(user=>{
                         
                         console.log("Follow Up "+user.mail.followUp +" " + dateTime+" "+user.email);
                         triggerMail();
                     })
                 }
-                else if(user.mail.followUp == null){
-                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp:0, isVerified:false}}}, {new:true})
-                    .then(user => {
-                        
-                        console.log("Follow Up "+user.mail.followUp +" " + dateTime+" "+user.email );
-                        
-                    })
-                }
+
             }
         })
       });
+      Task.start();
       function triggerMail(){ transporter.sendMail(message, function(err, doc) {
         if (err){
             console.log(err)
