@@ -29,5 +29,6 @@ router.post('/verifyCaptcha', ctrlUser.captchaVerify);
 router.post('/forgotPassword', ctrlUser.forgotPwd);
 router.get('/resetPassword', ctrlUser.resetPwd);
 router.post('/resetPassword', ctrlUser.changePassword);
+router.get('/activate', ctrlUser.activateUser);
 
 module.exports = router;

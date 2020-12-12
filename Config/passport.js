@@ -19,7 +19,7 @@ passport.use(
                 else if(!user.verifyPassword(password)){
                     return done(null, false, {message: 'Wrong Password!'})
                 }
-                else if(user.isVerified == false){
+                else if(user.mail.isVerified == false){
                     return done(null, false, {message: 'Verify your email'})
                 }
                 else if(user){

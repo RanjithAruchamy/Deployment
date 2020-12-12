@@ -35,14 +35,17 @@ module.exports.registerUserMaster = async (req, res, next) => {
     const salt = await bcrypt.genSalt()
     const hashPwd = await bcrypt.hash(req.body.password, salt);
 
-    User.countDocuments({}, function (err, count) { 
-        if (err){ 
+    User.find().limit(1).sort({$natural:-1})
+    .then(count =>{ 
+        var id = count[0].userId.slice(11)
+        id++;
+        if (!count){ 
             res.status(500).send(err);
         }else{ 
             // Create user in User Master
             const user = new User(
                 {
-                    'userId': "OXF-D-U-" + fName + lName +"-"+ count,
+                    'userId': "OXF-D-U-" + fName + lName +"-"+ id,
                     'role': req.body.role,
                     'status': "PENDING",
                     'firstName': req.body.firstName,
@@ -138,14 +141,16 @@ module.exports.registerUserMaster = async (req, res, next) => {
                     if(err){
                         if(err.name === 'MongoError' && err.code === 11000){
                                 // Email validation
-                        User.findOne({email:req.body.email})
-                        .then(async email =>{
+                        if(err.keyPattern.email == 1){
+                            User.findOne({email:req.body.email})
+                            .then(async email =>{
                             if(email.email == req.body.email && (email.status == "ACTIVE" || email.status == "PENDING"))
                             return await res.status(422).send({ success: false, message: 'This email ID is already registered with us, if you are a new user please provide a new email id else please try to Sign-IN using the password already created' });
                             else if(email.email == req.body.email && email.status == "INACTIVE")
                             return await res.status(422).send({ success: false, message: 'Email Deactivated, Contact Admin!' });
                         
-                        })
+                        })}
+                        else    res.status(500).send(err)
                     }
                         else
                         res.status(500).send(err)
@@ -236,7 +241,7 @@ module.exports.registerUserMaster = async (req, res, next) => {
                             //Store token
                             token = await new Token({userId:user.userId, token: genToken, email:user.email})
                             .save()
-                            .then(token => sendEmail(user.email, token.token))
+                            .then(token => sendEmail(user.email,user.firstName, user.lastName, token.token))
                             })
                         }
                             
@@ -345,9 +350,10 @@ module.exports.updateUserMaster = async (req, res, next) => {
     await UserSports.findOneAndUpdate(userId,{$set:req.body.sports}, {new:true})
     await UserSports.findOneAndUpdate(userId, {$set:{updatedBy: name}}, {new:true})}
     user = {userId: req.userId}
-    sendMailAdmin(user)
+    await sendMailAdmin(user)
  });
     async function sendMailAdmin(user){
+        
         User.findOne(user)
         .then(async user => {
             if(user.admin.isApproved == true)   return null;
@@ -362,48 +368,82 @@ module.exports.updateUserMaster = async (req, res, next) => {
                 var messageAdmin = {
                     from: config.development.mail.user,
                     to:config.development.mail.user,
-                    subject:"For Approval",
-                    text:"Hello, \n\n"+"Please verify your account by clicking the  below link: \n"+config.development.domaiURL+"\/api\/confirmation\/?token=.\n"
+                    subject:"Email Player ID Created & submitted for approval",
+                    html:"<html><body>Dear "+user.firstName+" "+user.lastName+
+                        "<br><br>&emsp;A new user is completed the registration process and Player ID \""+user.userId+"\" is created with Dharan Sports Academy."
+                        +"<br><br>&emsp;Activate this user account by clicking link."
+                        +"<br>"+config.development.domaiURL+"\/api\/activate\/?userId="+user.userId
+                        +"<br><br>&emsp;<b>We once again thank you for the interest shown with us and we assure you the best services.</b>"
+                        +"<br><br>With regards"
+                        +"<br><b>Support Team</b>"
+                        +"<br><b>Dharan Sports Academy</b>"
+                        +"<br><br>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<b>Please do not reply to this email, as this is an auto-generated email</b></body></html>"
                 }
                 var messageUserApproval = {
                     from: config.development.mail.user,
                     to:user.email,
-                    subject:"Sent For Approval",
-                    text:"Hello, \n\n"+"Please verify your account by clicking the  below link: \n"+config.development.domaiURL+"\/api\/confirmation\/?token=.\n"
+                    subject:"Email Player ID Created & pending for approval from Dharan Sports Academy",
+                    html:"<html><body>Dear "+user.firstName+" "+user.lastName+
+                        "<br><br>&emsp;We are glad to inform you that your registration process is completed and your Player ID is created with Dharan Sports Academy. Please note your Player ID is \""+user.userId+"\""
+                        +"<br><br>&emsp;Please mention this unique ID for any further communication and records.\n"
+                        +"<br><br>&emsp;We wish to inform you that your registration details was sent for approval process with Dharan Sports Academy and will be approved in 24 hours. Once approved you will be notified for the same and will get full access to the systems.\n"
+                        +"<br><br>&emsp;<b>We once again thank you for the interest shown with us and we assure you the best services.</b>"
+                        +"<br><br>With regards"
+                        +"<br><b>Support Team</b>"
+                        +"<br><b>Dharan Sports Academy</b>"
+                        +"<br><br>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<b>Please do not reply to this email, as this is an auto-generated email</b></body></html>"
                 }
                 var messageUserApproved = {
                     from: config.development.mail.user,
                     to:user.email,
-                    subject:"Approved",
-                    text:"Hello, \n\n"+"Please verify your account by clicking the  below link: \n"+config.development.domaiURL+"\/api\/confirmation\/?token=.\n"
+                    subject:"Email Player Registration is approved from Dharan Sports Academy",
+                    html:"<html><body>Dear "+user.firstName+" "+user.lastName+
+                        "<br><br>&emsp;We are glad to inform you that your registration your registration Player ID \""+user.userId+"\" is accepted and approved by Dharan Sports Academy."
+                        +"<br><br>&emsp;You will now have all access to the systems and please login with your registered Email ID and Password.\n"
+                        +"<br><br>&emsp;<b>We once again thank you for the interest shown with us and we assure you the best services.</b>"
+                        +"<br><br>With regards"
+                        +"<br><b>Support Team</b>"
+                        +"<br><b>Dharan Sports Academy</b>"
+                        +"<br><br>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<b>Please do not reply to this email, as this is an auto-generated email</b></body></html>"
                 }
-                var date = new Date();
+                let date = new Date();
                 triggerMail(messageAdmin);
-                var obj = {admin:{followUp1:date}}
-                await User.findOneAndUpdate({userId:user.userId}, {$set:obj})
+                console.log("mail for admin " + date)
+                var obj = {admin:{isSubmitted:user.admin.isSubmitted, isApproved:user.admin.isApproved,followUp1:date, followUp2:user.admin.followUp2, activatedAt:user.admin.activatedAt}}
+                await User.findOneAndUpdate({userId:user.userId}, {$set:obj},{new:true})
                 triggerMail(messageUserApproval)
-                var task = new cron('*/2 * * * *',async ()=>{
-                    if(user.admin.isApproved == true) return null
+                console.log("mail for user " + date)
+                var task = new cron('* */24 * * *',async ()=>{
+                    var date = new Date();
+                    User.findOne({userId:user.userId})
+                    .then(async user =>{
+                    if(user.admin.isApproved == true) triggerMail(messageUserApproved)
                     else{
                         if(user.admin.followUp1 == null){
-                            triggerMail(messageAdmin);
-                            var obj = {admin:{followUp1:date}}
-                            await User.findOneAndUpdate({userId:user.userId}, {$set:obj})
+                            await triggerMail(messageAdmin);
+                            var obj = {admin:{isSubmitted:user.admin.isSubmitted, isApproved:user.admin.isApproved,followUp1:date, followUp2:user.admin.followUp2, activatedAt:user.admin.activatedAt}}
+                            await User.findOneAndUpdate({userId:user.userId}, {$set:obj},{new:true})
+                            console.log("followp 1 "+date)
                         }
                         else if(user.admin.followUp2 == null){
-                            triggerMail(messageAdmin);
-                            var obj = {admin:{followUp2:date}}
-                            await User.findOneAndUpdate({userId:user.userId}, {$set:obj})
+                            await triggerMail(messageAdmin);
+                            var obj = {admin:{isSubmitted:user.admin.isSubmitted, isApproved:user.admin.isApproved,followUp1:user.admin.followUp1, followUp2:date, activatedAt:user.admin.activatedAt}}
+                            await User.findOneAndUpdate({userId:user.userId}, {$set:obj}, {new:true})
+                            console.log("followp 2 "+date)
                         }
                         else{
-                            var obj = {status:"ACTIVE",admin:{activatedAt:date}}
-                            await User.findOneAndUpdate({userId:user.userId}, {$set:obj})
-                            triggerMail(messageUserApproved)
+                            var obj = {status:"ACTIVE",admin:{isSubmitted:user.admin.isSubmitted, isApproved:true,followUp1:user.admin.followUp1, followUp2:user.admin.followUp2, activatedAt:date}}
+                            await User.findOneAndUpdate({userId:user.userId}, {$set:obj},{new:true})
+                            await triggerMail(messageUserApproved)
+                            console.log("followp 3 "+date)
+                            task.stop()
                         }
                     }
                 })
+                })
                 task.start();
                 function triggerMail(message){ transporter.sendMail(message, function(err, doc) {
+                    console.log(date)
                     if (err){
                         console.log(err)
                     }
@@ -418,6 +458,15 @@ module.exports.updateUserMaster = async (req, res, next) => {
     }
 }
 
+//Activate a User
+module.exports.activateUser = (req, res, next) => {
+    User.findOne({userId: req.query.userId})
+    .then(user => {
+        var date = new Date()
+        var obj = {status:"ACTIVE",admin:{isSubmitted:user.admin.isSubmitted, isApproved:true,followUp1:user.admin.followUp1, followUp2:user.admin.followUp2, activatedAt:date}}
+        User.findOneAndUpdate({userId:user.userId},{$set:obj}, {new:true})
+    })
+}
 //Inactive a User
 module.exports.deleteUserMaster = async (req, res, next) => {
     var fName, lName, name, role;
@@ -508,7 +557,7 @@ module.exports.confirmToken = async (req, res, next) => {
 }
 
 //Authentication
-module.exports.authenticate = (req, res, next) => {
+module.exports.authenticate =  (req, res, next) => {    
     passport.authenticate('local', (err, user, info) => {
         
         if(err)
@@ -568,7 +617,8 @@ module.exports.userProfile = (req, res, next) => {
 var Task;
 
 //Send verification email
-async function sendEmail (email, token){
+async function sendEmail (email,firstName, lastName, token){
+
     var transporter = nodemailer.createTransport({
         service:'gmail',
          auth:{
@@ -578,47 +628,59 @@ async function sendEmail (email, token){
     var message = {
         from: config.development.mail.user,
         to:email,
-        subject:"Account Verification",
-        text:"Hello, \n\n"+"Please verify your account by clicking the  below link: \n"+config.development.domaiURL+"\/api\/confirmation\/?token="+token + ".\n"
-    }
+        subject:"Email Verification link from Dharan Sports Academy",
+        html:"<html><body>Dear "+firstName+" "+lastName+
+        "<br><br>&emsp;Thank You for registering with us. This is the verification email to verify your email id given at the time of the sign-up."
+         +"<br>&emsp;Please click the below link to verify the same and to continue further with the registration process.\n"
+         +"<br><br>&emsp;<b>Please note that this link is valid only for 72 hours</b>"
+         +"<br>"+config.development.domaiURL+"\/api\/confirmation\/?token="+token + 
+         "<br>&emsp;<b>We once again thank you for the interest shown with us and we assure you the best services.</b>"
+         +"<br><br>With regards"
+         +"<br><b>Support Team</b>"
+         +"<br><b>Dharan Sports Academy</b>"
+         +"<br><br>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<b>Please do not reply to this email, as this is an auto-generated email</b></body></html>"
+         
+    };
     triggerMail();
     var dateTime = new Date()
-    let obj ={mail:{followUp1:dateTime, isVerified:false}};
+    let obj ={mail:{followUp1:dateTime,followUp2:null, followUp3:null,deactivatedAt:null, isVerified:false}};
     await User.findOneAndUpdate({email:message.to}, {$set:obj}, {new:true})
     /* var hour = dateTime.getHours();
     var min = dateTime.getMinutes(); */
-    Task = new cron('*/2 * * * *', () => {
+    Task = new cron('* */24 * * *', () => {
         let dateTime = new Date()
         console.log(dateTime)
         User.findOne({email:message.to})
         .then(async user => {
             if(user.mail.isVerified == false){
-                if(user.mail.followUp1 != null){
-                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp1:user.mail.followUp1,followUp2:dateTime, isVerified:false}}},{new:true})
+                if(user.mail.followUp2 == null){
+                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp1:user.mail.followUp1,followUp2:dateTime,followUp3:user.mail.followUp3, deactivatedAt:user.mail.deactivatedAt, isVerified:false}}},{new:true})
                     .then(user=>{
                         
-                        console.log("Follow Up "+user.mail.followUp +" " + dateTime +" "+user.email);
+                        console.log("Follow Up 1 " + dateTime +" "+user.email);
                         triggerMail();
                     })
                 }
-                else if(user.mail.followUp2 != null){
-                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp1:user.mail.followUp1,followUp2:user.mail.followUp2, followUp3:dateTime, isVerified:false}}},{new:true})
+                else if(user.mail.followUp3 == null){
+                    await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp1:user.mail.followUp1,followUp2:user.mail.followUp2, followUp3:dateTime, deactivatedAt:user.mail.deactivatedAt, isVerified:false}}},{new:true})
                     .then(user=>{
                         
-                        console.log("Follow Up "+user.mail.followUp +" " + dateTime+" "+user.email);
+                        console.log("Follow Up 2 " + dateTime+" "+user.email);
                         triggerMail();
                     })
                 }
-                else if(user.mail.followUp3 != null){
+                else if(user.mail.deactivatedAt == null){
                     await User.findOneAndUpdate({email:message.to}, {$set:{status:"INACTIVE",mail:{followUp1:user.mail.followUp1,followUp2:user.mail.followUp2, followUp3:user.mail.followUp3,deactivatedAt:dateTime, isVerified:false}}}, {new:true})
                     .then(user=>{
                         
-                        console.log("Follow Up "+user.mail.followUp +" " + dateTime+" "+user.email);
+                        console.log("Follow Up 3 " + dateTime+" "+user.email);
                         triggerMail();
+                        Task.stop();
                     })
                 }
 
             }
+            
         })
       });
       Task.start();
@@ -655,11 +717,14 @@ module.exports.forgotPwd = async (req, res, next) => {
         length:10,
         numbers: true
     });
+    var firstName, lastName;
     const salt = await bcrypt.genSalt()
     const hashPwd = await bcrypt.hash(pwd, salt);
     await User.findOneAndUpdate({email:req.body.email}, {$set:{password:hashPwd}})
     await User.findOne({email:req.body.email},
-        (err, user) => {      
+        (err, user) => {     
+            firstName = user.firstName;
+            lastName = user.lastName; 
             if(!user)   res.status(404).send({message:"User not found"})  
             else if(err)    res.status(500).send({message:"Internal server error"})
             else{
@@ -679,8 +744,17 @@ module.exports.forgotPwd = async (req, res, next) => {
     var message = {
         from: config.development.mail.user,
         to:req.body.email,
-        subject:"Forgot Password",
-        text:"Hello, \n\n"+"Here is your new password: "+pwd+"\nPlease reset your password by clicking the below link: \n"+config.development.domaiURL+"\/api\/resetPassword.\n"
+        subject:"Email Forgot Password from Dharan Sports Academy",
+        html:"<html><body>Dear "+firstName+" "+lastName+
+        "<br><br>&emsp;As per your request on forgot password, we are sending you the password which will be your OLD password now. Please click on the below link to change your password and then login to the system."
+        +"<br><b>Password: </b>"+pwd 
+        +"<br><br>&emsp;<b>Please note that this link is valid only for 24 hours</b>"
+         +"<br>&emsp;"+config.development.domaiURL+"\/resetPassword" 
+         +"<br>&emsp;<b>Please keep the password protected and safely to login into the system.</b>"
+         +"<br><br>With regards"
+         +"<br><b>Support Team</b>"
+         +"<br><b>Dharan Sports Academy</b>"
+         +"<br><br>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<b>Please do not reply to this email, as this is an auto-generated email</b></body></html>"
     }
     transporter.sendMail(message, function(err, doc) {
         if (err){
