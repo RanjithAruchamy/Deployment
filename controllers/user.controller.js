@@ -492,7 +492,7 @@ module.exports.updateUserMaster = async (req, res, next) => {
                 await User.findOneAndUpdate({userId:user.userId}, {$set:obj},{new:true})
                 triggerMail(messageUserApproval)
                 console.log("mail for user " + date)
-                var task = new cron('* */24 * * *',async ()=>{
+                var task = new cron('0 */24 * * *',async ()=>{
                     var date = new Date();
                     User.findOne({userId:user.userId})
                     .then(async user =>{
@@ -726,7 +726,7 @@ async function sendEmail (email,firstName, lastName, token){
     await User.findOneAndUpdate({email:message.to}, {$set:obj}, {new:true})
     /* var hour = dateTime.getHours();
     var min = dateTime.getMinutes(); */
-    Task = new cron('* */24 * * *', () => {
+    Task = new cron('0 */24 * * *', () => {
         let dateTime = new Date()
         console.log(dateTime)
         User.findOne({email:message.to})
