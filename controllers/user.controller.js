@@ -18,6 +18,8 @@ const pwdGenerator = require('generate-password');
 const session = require('node-sessionstorage');
 const { LocalStorage } = require('node-localstorage');
 const localstorage = require('node-localstorage').LocalStorage;
+const multer = require('multer');
+const Upload = require('../models/upload');
 //const User = mongoose.model('UserMaster');
 
 // Create a User
@@ -89,7 +91,21 @@ module.exports.registerUserMaster = async (req, res, next) => {
                         'height': null,
                         'weight':null,
                         'profession': null,
-                        'organization': null
+                        'organization': null,
+                        'files':{
+                            'idProof':{
+                              'url': null
+                            },
+                            'addressProof':{
+                              'url': null
+                            },
+                            'birthCertificate':{
+                              'url': null
+                            },
+                            'profileImage':{
+                              'url': null
+                            }
+                          }
                     },
                     'sports':{
                         'sportId': req.body.sportId,
@@ -184,6 +200,20 @@ module.exports.registerUserMaster = async (req, res, next) => {
                             'weight':null,
                             'profession': null,
                             'organization': null,
+                            'files':{
+                                'idProof':{
+                                  'url': null
+                                },
+                                'addressProof':{
+                                  'url': null
+                                },
+                                'birthCertificate':{
+                                  'url': null
+                                },
+                                'profileImage':{
+                                  'url': null
+                                }
+                              },
                             'deletedAt': null,
                             'createdBy':user.createdBy,
                             'updatedBy':null,
@@ -306,6 +336,55 @@ module.exports.getUser = (req, res, next) => {
         });
 }
 
+//Upload a file/image to server
+var storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, '\public/files');
+    },
+    filename: (req, file, cb) => {
+        // console.log(file);
+        var filetype = '';
+        if (file.mimetype === 'image/gif') {
+            filetype ='gif';
+            cb(null, 'image-' + Date.now() + '.' + filetype)
+        }
+        if (file.mimetype === 'image/png') {
+            filetype ='png';
+            cb(null, 'image-' + Date.now() + '.' + filetype)
+        }
+        if (file.mimetype === 'image/jpeg') {
+            filetype ='jpeg';
+            cb(null, 'image-' + Date.now() + '.' + filetype)
+        }
+        if (file.mimetype === 'application/pdf') {
+            filetype ='pdf';
+            cb(null, 'pdf-' + Date.now() + '.' + filetype)
+        }
+    }
+});
+module.exports.upload = multer ({storage: storage})
+
+module.exports.uploadFile = function (req, res, next) {
+    console.log(req.body)
+    if(!req.file) {
+        return res.status(500).send({message: 'Upload fail'});
+    }
+    else{
+        req.body.imageUrl = config.development.domaiURL +"/images/"+req.file.filename;
+        let obj= {url:req.body.imageUrl, uploaded:Date.now()}
+        User.findOneAndUpdate({email:req.query.mail}, {$set:{'personal.files.addressProof':obj}},{new:true})
+        .then(console.log(req.body.imageUrl))
+        Upload.create(req.body, (err, file) => {
+            if (err){
+                console.log(err);
+                return next(err);
+            }
+            res.json(req.body.imageUrl);
+            // console.log(req.body.imageUrl)
+        })
+    }
+    // console.log(req.body.imageUrl)
+}
 //Update a User
 module.exports.updateUserMaster = async (req, res, next) => {
     // To fetch logged in user details

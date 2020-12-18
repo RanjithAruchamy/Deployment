@@ -49,7 +49,25 @@ var userSchema = new mongoose.Schema(
       height:{type:String },
       weight:{type:String},
       profession:{type:String },
-      organization:{type:String }
+      organization:{type:String },
+      files:{
+        idProof:{
+          url: {type: String},
+          uploaded: {type:Date}
+        },
+        addressProof:{
+          url: {type: String},
+          uploaded: {type:Date}
+        },
+        birthCertificate:{
+          url: {type: String},
+          uploaded: {type:Date}
+        },
+        profileImage:{
+          url: {type: String},
+          uploaded: {type:Date}
+        }
+      }
     },
     sports:{
       sportId:{type:String},

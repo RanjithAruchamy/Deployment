@@ -25,6 +25,24 @@ var userSchema = new mongoose.Schema(
     weight:{type:String},
     profession:{type:String },
     organization:{type:String },
+    files:{
+      idProof:{
+        url: {type: String},
+        uploaded: {type:Date, default: Date.now}
+      },
+      addressProof:{
+        url: {type: String},
+        uploaded: {type:Date, default: Date.now}
+      },
+      birthCertificate:{
+        url: {type: String},
+        uploaded: {type:Date, default: Date.now}
+      },
+      profileImage:{
+        url: {type: String},
+        uploaded: {type:Date, default: Date.now}
+      }
+    },
     deletedAt: { type: Date  },
     createdBy:{type:String},
     updatedBy:{type:String },

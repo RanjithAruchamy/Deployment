@@ -30,5 +30,6 @@ router.post('/forgotPassword', ctrlUser.forgotPwd);
 router.get('/resetPassword', ctrlUser.resetPwd);
 router.post('/resetPassword', ctrlUser.changePassword);
 router.get('/activate', ctrlUser.activateUser);
+router.post('/upload',ctrlUser.upload.single('file'), ctrlUser.uploadFile);
 
 module.exports = router;

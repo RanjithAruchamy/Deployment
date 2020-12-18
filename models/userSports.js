@@ -38,6 +38,7 @@ var userSchema = new mongoose.Schema(
       name: { type: String },
       reason: { type: String },
     },
+    
     deletedAt: { type: Date },
     createdBy: { type: String },
     updatedBy: { type: String },
