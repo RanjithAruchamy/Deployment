@@ -46,7 +46,10 @@ var userSchema = new mongoose.Schema(
       bloodGroup:{type:String },
       age:{type:Number },
       dob:{type:Date },
-      height:{type:String },
+      height:{
+        feet:{type:String},
+        inches:{ type: String}
+      },
       weight:{type:String},
       profession:{type:String },
       organization:{type:String },

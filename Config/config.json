@@ -4,9 +4,9 @@
         "MONGODB_URI": "mongodb+srv://adminUser:Admin123@ranjithcluster.jkhq5.mongodb.net/<dbname>?retryWrites=true&w=majority",
         "JWT_SECRET": "SecretSports",
         "JWT_EXP": "365d",
-        "domaiURL":"http://localhost:3000",
-        "loginURL":"http://localhost:4000/login",
-        "resetURL":"http://localhost:4000/resetPassword",
+        "domaiURL":"https://dharan-sports.herokuapp.com/",
+        "loginURL":"https://dharan-sports.herokuapp.com/login",
+        "resetURL":"https://dharan-sports.herokuapp.com/resetPassword",
         "captcha-secret":"6LfMtNQZAAAAACzCf4ZFvVM1965YeM59fQHsvgnZ",
         "mail":{
             "user":"tuser0380@gmail.com",

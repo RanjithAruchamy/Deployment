@@ -19,7 +19,7 @@ const session = require('node-sessionstorage');
 const { LocalStorage } = require('node-localstorage');
 const localstorage = require('node-localstorage').LocalStorage;
 const multer = require('multer');
-const Upload = require('../models/upload');
+// const Upload = require('../models/upload');
 //const User = mongoose.model('UserMaster');
 
 // Create a User
@@ -88,7 +88,10 @@ module.exports.registerUserMaster = async (req, res, next) => {
                         'bloodGroup': null,
                         'age': null,
                         'dob': null,
-                        'height': null,
+                        'height':{
+                            'feet':null,
+                            'inches': null
+                        },
                         'weight':null,
                         'profession': null,
                         'organization': null,
@@ -196,7 +199,10 @@ module.exports.registerUserMaster = async (req, res, next) => {
                             'bloodGroup': null,
                             'age': null,
                             'dob': null,
-                            'height': null,
+                            'height': {
+                                'feet':null,
+                                'inches':null
+                            },
                             'weight':null,
                             'profession': null,
                             'organization': null,
@@ -365,23 +371,38 @@ var storage = multer.diskStorage({
 module.exports.upload = multer ({storage: storage})
 
 module.exports.uploadFile = function (req, res, next) {
-    console.log(req.body)
+    
     if(!req.file) {
         return res.status(500).send({message: 'Upload fail'});
     }
     else{
-        req.body.imageUrl = config.development.domaiURL +"/images/"+req.file.filename;
+        req.body.imageUrl = config.development.domaiURL +"/files?file="+req.file.filename;
+        // console.log(req.body.imageUrl)
         let obj= {url:req.body.imageUrl, uploaded:Date.now()}
+        if(req.query.files == 'address'){
         User.findOneAndUpdate({email:req.query.mail}, {$set:{'personal.files.addressProof':obj}},{new:true})
-        .then(console.log(req.body.imageUrl))
-        Upload.create(req.body, (err, file) => {
+        .then(res.status(200).json(req.body.imageUrl))
+    }
+    else if(req.query.files == 'id'){
+        User.findOneAndUpdate({email:req.query.mail}, {$set:{'personal.files.idProof':obj}},{new:true})
+        .then(res.status(200).json(req.body.imageUrl))
+    }
+    else if(req.query.files == 'birth'){
+        User.findOneAndUpdate({email:req.query.mail}, {$set:{'personal.files.birthCertificate':obj}},{new:true})
+        .then(res.status(200).json(req.body.imageUrl))
+    }
+    else if(req.query.files == 'image'){
+        User.findOneAndUpdate({email:req.query.mail}, {$set:{'personal.files.profileImage':obj}},{new:true})
+        .then(res.status(200).json(req.body.imageUrl))
+    }
+        /* Upload.create(req.body, (err, file) => {
             if (err){
                 console.log(err);
                 return next(err);
             }
-            res.json(req.body.imageUrl);
+            res.status(200).json(req.body.imageUrl+" "+req.query.files);
             // console.log(req.body.imageUrl)
-        })
+        }) */
     }
     // console.log(req.body.imageUrl)
 }
@@ -445,7 +466,7 @@ module.exports.updateUserMaster = async (req, res, next) => {
                          pass: config.development.mail.pwd} 
                         })
                 var messageAdmin = {
-                    from: config.development.mail.user,
+                    from: "Dharan Sports Academy",
                     to:config.development.mail.user,
                     subject:"Email Player ID Created & submitted for approval",
                     html:"<html><body>Dear "+user.firstName+" "+user.lastName+
@@ -459,7 +480,7 @@ module.exports.updateUserMaster = async (req, res, next) => {
                         +"<br><br>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<b>Please do not reply to this email, as this is an auto-generated email</b></body></html>"
                 }
                 var messageUserApproval = {
-                    from: config.development.mail.user,
+                    from: "Dharan Sports Academy",
                     to:user.email,
                     subject:"Email Player ID Created & pending for approval from Dharan Sports Academy",
                     html:"<html><body>Dear "+user.firstName+" "+user.lastName+
@@ -473,7 +494,7 @@ module.exports.updateUserMaster = async (req, res, next) => {
                         +"<br><br>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<b>Please do not reply to this email, as this is an auto-generated email</b></body></html>"
                 }
                 var messageUserApproved = {
-                    from: config.development.mail.user,
+                    from: "Dharan Sports Academy",
                     to:user.email,
                     subject:"Email Player Registration is approved from Dharan Sports Academy",
                     html:"<html><body>Dear "+user.firstName+" "+user.lastName+
@@ -492,7 +513,7 @@ module.exports.updateUserMaster = async (req, res, next) => {
                 await User.findOneAndUpdate({userId:user.userId}, {$set:obj},{new:true})
                 triggerMail(messageUserApproval)
                 console.log("mail for user " + date)
-                var task = new cron('* */24 * * *',async ()=>{
+                var task = new cron('0 */24 * * *',async ()=>{
                     var date = new Date();
                     User.findOne({userId:user.userId})
                     .then(async user =>{
@@ -616,26 +637,29 @@ module.exports.deleteUser = async (req, res, next) => {
 module.exports.confirmToken = async (req, res, next) => {
     Token.findOne({token:req.query.token})
     .then(token => {
+        if(!token)  res.status(404).send("Link Expired!!! Contact Admin")
+        else{
         if(token.token === req.query.token){
-            var followUp ;
+            // var followUp ;
             User.findOne({userId:token.userId})
             .then(user => {
-                followUp = user.mail.followUp            
-            User.findOneAndUpdate({userId:token.userId}, {$set:{mail:{isVerified:true, followUp: followUp}}}, {new:true})
+                // followUp = user.mail.followUp            
+            User.findOneAndUpdate({userId:token.userId}, {$set:{'mail.isVerified': true}}, {new:true})
             .then(user => {
                 if(user.mail.isVerified == true){
                     res.redirect(config.development.loginURL);
-                    Task.stop();
+                    // Task.stop();
                 }
             })
         })
         }
+    }
 })
     
     
 }
 
-//Authentication
+//login Authentication
 module.exports.authenticate =  (req, res, next) => {    
     passport.authenticate('local', (err, user, info) => {
         
@@ -705,7 +729,7 @@ async function sendEmail (email,firstName, lastName, token){
              pass: config.development.mail.pwd} 
             })
     var message = {
-        from: config.development.mail.user,
+        from: "Dharan Sports Academy",
         to:email,
         subject:"Email Verification link from Dharan Sports Academy",
         html:"<html><body>Dear "+firstName+" "+lastName+
@@ -726,7 +750,7 @@ async function sendEmail (email,firstName, lastName, token){
     await User.findOneAndUpdate({email:message.to}, {$set:obj}, {new:true})
     /* var hour = dateTime.getHours();
     var min = dateTime.getMinutes(); */
-    Task = new cron('* */24 * * *', () => {
+    Task = new cron('0 */24 * * *', () => {
         let dateTime = new Date()
         console.log(dateTime)
         User.findOne({email:message.to})
@@ -802,11 +826,12 @@ module.exports.forgotPwd = async (req, res, next) => {
     await User.findOneAndUpdate({email:req.body.email}, {$set:{password:hashPwd}})
     await User.findOne({email:req.body.email},
         (err, user) => {     
-            firstName = user.firstName;
-            lastName = user.lastName; 
+            
             if(!user)   res.status(404).send({message:"User not found"})  
             else if(err)    res.status(500).send({message:"Internal server error"})
             else{
+                firstName = user.firstName;
+                lastName = user.lastName; 
                 token = new Token({userId:user.userId, token: genToken, email:user.email})
                 .save()
                 triggerMail();
@@ -821,7 +846,7 @@ module.exports.forgotPwd = async (req, res, next) => {
              pass: config.development.mail.pwd} 
             })
     var message = {
-        from: config.development.mail.user,
+        from: "Dharan Sports Academy",
         to:req.body.email,
         subject:"Email Forgot Password from Dharan Sports Academy",
         html:"<html><body>Dear "+firstName+" "+lastName+
