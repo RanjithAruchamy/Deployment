@@ -39,7 +39,7 @@ module.exports.registerUserMaster = async (req, res, next) => {
 
     User.find().limit(1).sort({$natural:-1})
     .then(count =>{ 
-        var id = count[0].userId.slice(11)
+        var id = count[0].userId.slice(8)
         id++;
         if (!count){ 
             res.status(500).send(err);
@@ -47,7 +47,7 @@ module.exports.registerUserMaster = async (req, res, next) => {
             // Create user in User Master
             const user = new User(
                 {
-                    'userId': "OXF-D-U-" + fName + lName +"-"+ id,
+                    'userId': "OXFDU" + fName + lName+ "0" + id,
                     'role': req.body.role,
                     'status': "PENDING",
                     'firstName': req.body.firstName,
@@ -330,7 +330,18 @@ module.exports.getUser = (req, res, next) => {
                 }
                 else{
                     User.findOne({userId:req.query.userId})
-                    .then(users => res.status(200).send(users))
+                    .then(users => {res.status(200).send(users); 
+                     /*    var date = new Date().getTime();
+                        let d = users.mail.followUp1.getTime();
+                        let difference = date - d;
+                        let hour = Math.floor(
+                            (difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+                          );
+                        console.log(date);
+                        console.log(d);
+                        if(hour >= 1)
+                        console.log(hour); */
+                    })
                     .catch(err => res.status(404).send(err))
                 }
             }
@@ -381,19 +392,19 @@ module.exports.uploadFile = function (req, res, next) {
         let obj= {url:req.body.imageUrl, uploaded:Date.now()}
         if(req.query.files == 'address'){
         User.findOneAndUpdate({email:req.query.mail}, {$set:{'personal.files.addressProof':obj}},{new:true})
-        .then(res.status(200).json(req.body.imageUrl))
+        .then(res.status(200).json({url:req.body.imageUrl, file:'address'}))
     }
     else if(req.query.files == 'id'){
         User.findOneAndUpdate({email:req.query.mail}, {$set:{'personal.files.idProof':obj}},{new:true})
-        .then(res.status(200).json(req.body.imageUrl))
+        .then(res.status(200).json({url:req.body.imageUrl, file:'id'}))
     }
     else if(req.query.files == 'birth'){
         User.findOneAndUpdate({email:req.query.mail}, {$set:{'personal.files.birthCertificate':obj}},{new:true})
-        .then(res.status(200).json(req.body.imageUrl))
+        .then(res.status(200).json({url:req.body.imageUrl, file:'birth'}))
     }
     else if(req.query.files == 'image'){
         User.findOneAndUpdate({email:req.query.mail}, {$set:{'personal.files.profileImage':obj}},{new:true})
-        .then(res.status(200).json(req.body.imageUrl))
+        .then(res.status(200).json({url:req.body.imageUrl, file:'image'}))
     }
         /* Upload.create(req.body, (err, file) => {
             if (err){
@@ -410,7 +421,6 @@ module.exports.uploadFile = function (req, res, next) {
 module.exports.updateUserMaster = async (req, res, next) => {
     // To fetch logged in user details
     var fName, lName, name, role, user;
-    
     User.findOne({userId: req.userId},
       async  (err, user) => {
             if(!user)
@@ -513,7 +523,7 @@ module.exports.updateUserMaster = async (req, res, next) => {
                 await User.findOneAndUpdate({userId:user.userId}, {$set:obj},{new:true})
                 triggerMail(messageUserApproval)
                 console.log("mail for user " + date)
-                var task = new cron('0 */24 * * *',async ()=>{
+                var task = new cron('0 */3 * * *',async ()=>{
                     var date = new Date();
                     User.findOne({userId:user.userId})
                     .then(async user =>{
@@ -526,17 +536,35 @@ module.exports.updateUserMaster = async (req, res, next) => {
                             console.log("followp 1 "+date)
                         }
                         else if(user.admin.followUp2 == null){
+                            var datetime = new Date().getTime();
+                            let d = user.admin.followUp1.getTime();
+                            let difference = datetime - d;
+                            let hour = Math.floor(
+                                (difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+                            );
+                            console.log(hour);    
+                            if(hour >= 21){
                             await triggerMail(messageAdmin);
                             var obj = {admin:{isSubmitted:user.admin.isSubmitted, isApproved:user.admin.isApproved,followUp1:user.admin.followUp1, followUp2:date, activatedAt:user.admin.activatedAt}}
                             await User.findOneAndUpdate({userId:user.userId}, {$set:obj}, {new:true})
                             console.log("followp 2 "+date)
                         }
+                        }
                         else{
+                            var datetime = new Date().getTime();
+                            let d = user.admin.followUp2.getTime();
+                            let difference = datetime - d;
+                            let hour = Math.floor(
+                                (difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+                            );
+                            console.log(hour);    
+                            if(hour >= 21){
                             var obj = {status:"ACTIVE",admin:{isSubmitted:user.admin.isSubmitted, isApproved:true,followUp1:user.admin.followUp1, followUp2:user.admin.followUp2, activatedAt:date}}
                             await User.findOneAndUpdate({userId:user.userId}, {$set:obj},{new:true})
                             await triggerMail(messageUserApproved)
                             console.log("followp 3 "+date)
                             task.stop()
+                        }
                         }
                     }
                 })
@@ -750,13 +778,21 @@ async function sendEmail (email,firstName, lastName, token){
     await User.findOneAndUpdate({email:message.to}, {$set:obj}, {new:true})
     /* var hour = dateTime.getHours();
     var min = dateTime.getMinutes(); */
-    Task = new cron('0 */24 * * *', () => {
+    Task = new cron('0 */3 * * *', () => {
         let dateTime = new Date()
-        console.log(dateTime)
+        console.log("cron job "+dateTime)
         User.findOne({email:message.to})
         .then(async user => {
             if(user.mail.isVerified == false){
-                if(user.mail.followUp2 == null){
+                if(user.mail.followUp2 == null){    
+                    var date = new Date().getTime();
+                    let d = user.mail.followUp1.getTime();
+                    let difference = date - d;
+                    let hour = Math.floor(
+                        (difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+                      );
+                    console.log(hour);    
+                    if(hour >= 21){
                     await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp1:user.mail.followUp1,followUp2:dateTime,followUp3:user.mail.followUp3, deactivatedAt:user.mail.deactivatedAt, isVerified:false}}},{new:true})
                     .then(user=>{
                         
@@ -764,7 +800,16 @@ async function sendEmail (email,firstName, lastName, token){
                         triggerMail();
                     })
                 }
+                }
                 else if(user.mail.followUp3 == null){
+                    var date = new Date().getTime();
+                    let d = user.mail.followUp2.getTime();
+                    let difference = date - d;
+                    let hour = Math.floor(
+                        (difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+                      );
+                    console.log(hour);    
+                    if(hour >= 21){
                     await User.findOneAndUpdate({email:message.to}, {$set:{mail:{followUp1:user.mail.followUp1,followUp2:user.mail.followUp2, followUp3:dateTime, deactivatedAt:user.mail.deactivatedAt, isVerified:false}}},{new:true})
                     .then(user=>{
                         
@@ -772,7 +817,16 @@ async function sendEmail (email,firstName, lastName, token){
                         triggerMail();
                     })
                 }
+                }
                 else if(user.mail.deactivatedAt == null){
+                    var date = new Date().getTime();
+                    let d = user.mail.followUp3.getTime();
+                    let difference = date - d;
+                    let hour = Math.floor(
+                        (difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+                      );
+                    console.log(hour);    
+                    if(hour >= 21){
                     await User.findOneAndUpdate({email:message.to}, {$set:{status:"INACTIVE",mail:{followUp1:user.mail.followUp1,followUp2:user.mail.followUp2, followUp3:user.mail.followUp3,deactivatedAt:dateTime, isVerified:false}}}, {new:true})
                     .then(user=>{
                         
@@ -780,6 +834,7 @@ async function sendEmail (email,firstName, lastName, token){
                         triggerMail();
                         Task.stop();
                     })
+                    }
                 }
 
             }
@@ -814,8 +869,8 @@ module.exports.captchaVerify = (req, res, next) => {
 //Forgot Password
 module.exports.forgotPwd = async (req, res, next) => {
     const user = new User();
-    var token;
-    var genToken = await user.generateJwt();
+    // var token;
+    // var genToken = await user.generateJwt();
     var pwd = await pwdGenerator.generate({
         length:10,
         numbers: true
@@ -832,8 +887,8 @@ module.exports.forgotPwd = async (req, res, next) => {
             else{
                 firstName = user.firstName;
                 lastName = user.lastName; 
-                token = new Token({userId:user.userId, token: genToken, email:user.email})
-                .save()
+                // token = new Token({userId:user.userId, token: genToken, email:user.email})
+                // .save()
                 triggerMail();
             }
 
@@ -852,7 +907,7 @@ module.exports.forgotPwd = async (req, res, next) => {
         html:"<html><body>Dear "+firstName+" "+lastName+
         "<br><br>&emsp;As per your request on forgot password, we are sending you the password which will be your OLD password now. Please click on the below link to change your password and then login to the system."
         +"<br><b>Password: </b>"+pwd 
-        +"<br><br>&emsp;<b>Please note that this link is valid only for 24 hours</b>"
+        // +"<br><br>&emsp;<b>Please note that this link is valid only for 24 hours</b>"
          +"<br>&emsp;"+config.development.domaiURL+"\/resetPassword" 
          +"<br>&emsp;<b>Please keep the password protected and safely to login into the system.</b>"
          +"<br><br>With regards"
